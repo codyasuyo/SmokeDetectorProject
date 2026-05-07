@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smoke Signal — How Smoke Detectors Work</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #161618;
+    --card: #1e1e22;
+    --border: #2e2e35;
+    --orange: #ff6b35;
+    --amber: #ffb347;
+    --red: #ff3333;
+    --green: #39d98a;
+    --blue: #4fc3f7;
+    --smoke: #8888aa;
+    --text: #e8e8f0;
+    --muted: #7777aa;
+    --ion: #ffdd44;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NAV ── */
+  nav {
+    display: flex;
+    align-items: center;
+    padding: 1.2rem 2.5rem;
+    border-bottom: 1px solid var(--border);
+    gap: 1rem;
+  }
+  .nav-icon { font-size: 1.6rem; }
+  .nav-title { font-size: 1.1rem; font-weight: 800; letter-spacing: .04em; }
+  .nav-subtitle { margin-left: auto; font-family: 'Space Mono', monospace; font-size: .7rem; color: var(--muted); }
+
+  /* ── SECTIONS ── */
+  section { padding: 4rem 2.5rem; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 800; line-height: 1.05; }
+  h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 1rem; }
+  h3 { font-size: 1rem; font-weight: 600; color: var(--amber); margin-bottom: .5rem; font-family: 'Space Mono', monospace; }
+  p { line-height: 1.7; color: #c0c0d8; font-size: .97rem; }
+
+  .hero-tag {
+    display: inline-block;
+    background: var(--orange);
+    color: #000;
+    font-family: 'Space Mono', monospace;
+    font-size: .7rem;
+    padding: .3rem .7rem;
+    border-radius: 2px;
+    margin-bottom: 1.2rem;
+    letter-spacing: .1em;
+  }
+  .hero-sub { margin-top: 1rem; max-width: 520px; color: var(--muted); font-size: 1rem; }
+
+  /* ── INFO CARDS ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  .info-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.6rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .info-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--orange);
+  }
+  .info-card.nuclear::before { background: var(--ion); }
+  .info-card.chem::before { background: var(--blue); }
+  .info-card.alarm::before { background: var(--red); }
+  .card-icon { font-size: 2rem; margin-bottom: .8rem; }
+  .info-card p { font-size: .88rem; margin-top: .5rem; }
+  .mono { font-family: 'Space Mono', monospace; font-size: .8rem; color: var(--amber); background: #1a1a20; padding: .6rem; border-radius: 4px; margin-top: .8rem; line-height: 1.6; }
+
+  /* ── DIVIDER ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0 2.5rem;
+  }
+
+  /* ═══════════════════════════════════════
+     GAME SECTION
+  ═══════════════════════════════════════ */
+  #game-section {
+    padding: 3rem 2.5rem 5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .game-header h2 { margin-bottom: 0; }
+
+  /* Timer */
+  #timer-bar-wrap {
+    width: 200px;
+    height: 10px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  #timer-bar {
+    height: 100%;
+    width: 100%;
+    background: var(--green);
+    transition: width .25s linear, background .5s;
+    border-radius: 99px;
+  }
+  #timer-label {
+    font-family: 'Space Mono', monospace;
+    font-size: .85rem;
+    color: var(--muted);
+    text-align: right;
+    margin-bottom: .3rem;
+  }
+
+  /* Canvas */
+  #game-canvas-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/7;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #12121a;
+  }
+  #game-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Q&A panel */
+  #qa-panel {
+    margin-top: 1.5rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    min-height: 140px;
+  }
+  #question-text {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+  #answers-wrap {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: .7rem;
+  }
+  .ans-btn {
+    background: #25252c;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: .88rem;
+    padding: .75rem 1rem;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, transform .1s;
+    text-align: left;
+  }
+  .ans-btn:hover:not(:disabled) { background: #2e2e3a; border-color: var(--orange); }
+  .ans-btn.correct { background: #1a3a2a; border-color: var(--green); color: var(--green); }
+  .ans-btn.wrong   { background: #3a1a1a; border-color: var(--red);   color: var(--red);   }
+  .ans-btn:disabled { opacity: .6; cursor: default; }
+  #feedback-msg {
+    margin-top: 1rem;
+    font-family: 'Space Mono', monospace;
+    font-size: .82rem;
+    min-height: 1.4rem;
+  }
+  .fb-correct { color: var(--green); }
+  .fb-wrong   { color: var(--red); }
+
+  /* Start / overlay */
+  #game-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(13,13,15,.88);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    z-index: 20;
+    backdrop-filter: blur(4px);
+  }
+  #overlay-title {
+    font-size: clamp(1.4rem, 3vw, 2.2rem);
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.2;
+  }
+  #overlay-sub {
+    color: var(--muted);
+    font-size: .92rem;
+    text-align: center;
+    max-width: 360px;
+    font-family: 'Space Mono', monospace;
+  }
+  .play-btn {
+    background: var(--orange);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: .8rem 2.2rem;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    letter-spacing: .05em;
+    transition: transform .1s, opacity .15s;
+  }
+  .play-btn:hover { transform: scale(1.04); }
+
+  .penalty-flash {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,51,51,.18);
+    pointer-events: none;
+    z-index: 15;
+    animation: flashOut .5s forwards;
+  }
+  @keyframes flashOut { to { opacity: 0; } }
+
+  /* alarm flash */
+  .alarm-flash {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 14;
+    animation: alarmPulse .4s 5 forwards;
+  }
+  @keyframes alarmPulse {
+    0%,100% { background: transparent; }
+    50% { background: rgba(255,51,51,.25); }
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 1.5rem 2.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: .72rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    section, #game-section { padding: 2.5rem 1.2rem; }
+    nav { padding: 1rem 1.2rem; }
+    #timer-bar-wrap { width: 130px; }
+    #game-canvas-wrap { aspect-ratio: 4/3; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-icon">🔥</span>
+  <span class="nav-title">SMOKE SIGNAL</span>
+  <span class="nav-subtitle">An Interactive Science Explainer</span>
+</nav>
+
+<!-- HERO -->
+<section>
+  <div class="hero-tag">IONIZATION SCIENCE</div>
+  <h1>How Does a<br><span style="color:var(--orange)">Smoke Detector</span><br>Actually Work?</h1>
+  <p class="hero-sub">Most people know they beep. Few know they contain radioactive material and a tiny electrical circuit that smoke literally breaks. Here's the chemistry and nuclear physics behind the humble chirp.</p>
+</section>
+
+<hr class="divider">
+
+<!-- INFO CARDS -->
+<section>
+  <h2>The Science Behind the Beep</h2>
+  <div class="cards-grid">
+
+    <div class="info-card nuclear">
+      <div class="card-icon">☢️</div>
+      <h3>Nuclear Physics — Americium-241</h3>
+      <p>Ionization smoke detectors contain a tiny amount of <strong>Americium-241</strong> (Am-241), a synthetic radioactive element. Am-241 undergoes <strong>alpha decay</strong>, emitting alpha particles (α) — each is a helium-4 nucleus (2 protons + 2 neutrons).</p>
+      <div class="mono">²⁴¹Am → ²³⁷Np + ⁴He (α)
+Half-life: ~432 years
+Activity: ~1 microcurie (≈37,000 decays/sec)</div>
+      <p style="margin-top:.7rem;">Alpha particles are too massive to penetrate the detector's housing or your skin — they are only dangerous if inhaled or ingested, which the sealed source prevents.</p>
+    </div>
+
+    <div class="info-card chem">
+      <div class="card-icon">⚡</div>
+      <h3>Chemistry — Ionization of Air</h3>
+      <p>Alpha particles collide with nitrogen (N₂) and oxygen (O₂) molecules in air inside the detector chamber. This <strong>ionizes</strong> the air — knocking electrons free and creating positive ions and free electrons.</p>
+      <div class="mono">N₂ + α → N₂⁺ + e⁻
+O₂ + α → O₂⁺ + e⁻
+→ Continuous ion current flows</div>
+      <p style="margin-top:.7rem;">A small 9V battery applies voltage across two plates. Positive ions drift to the negative plate; electrons drift to the positive plate — creating a tiny but measurable <strong>steady electrical current</strong>.</p>
+    </div>
+
+    <div class="info-card">
+      <div class="card-icon">💨</div>
+      <h3>How Smoke Breaks the Circuit</h3>
+      <p>Smoke particles are large combustion byproducts — carbon soot, aerosols, partially-burned organics. When smoke enters the ionization chamber, these large particles <strong>attach to the ions</strong>, neutralizing them.</p>
+      <div class="mono">Smoke particle + O₂⁺ → [particle·O₂]⁺
+→ Ion becomes immobile / neutralized
+→ Current drops significantly</div>
+      <p style="margin-top:.7rem;">The ions are too heavy to migrate to the plates once bonded to smoke particles. The <strong>current drops</strong>, and the circuit detects this drop.</p>
+    </div>
+
+    <div class="info-card alarm">
+      <div class="card-icon">🚨</div>
+      <h3>Sounding the Alarm</h3>
+      <p>A monitoring circuit continuously measures the ion current. When current falls below a threshold, a <strong>comparator circuit</strong> triggers the piezoelectric buzzer. The alarm is literally the circuit crying out that its current was stolen by smoke.</p>
+      <div class="mono">Normal: I ≈ 10⁻¹² A (picoamps)
+Smoke:  I drops → threshold crossed
+→ Alarm: ~85 dB at 3 meters</div>
+      <p style="margin-top:.7rem;">Photoelectric detectors work differently — using light-scattering — but ionization detectors (the most common) rely entirely on this nuclear-chemistry chain reaction.</p>
+    </div>
+
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- GAME -->
+<section id="game-section" style="padding-top:3rem;">
+  <div class="game-header">
+    <div>
+      <h2>🍳 Kitchen Crisis</h2>
+      <p style="font-size:.88rem; color:var(--muted); margin-top:.3rem;">Answer correctly to guide smoke to the detector before the house burns down.</p>
+    </div>
+    <div>
+      <div id="timer-label">30.0s remaining</div>
+      <div id="timer-bar-wrap"><div id="timer-bar"></div></div>
+    </div>
+  </div>
+
+  <div id="game-canvas-wrap">
+    <canvas id="game-canvas"></canvas>
+    <div id="game-overlay">
+      <div id="overlay-title">Kitchen Crisis 🔥</div>
+      <div id="overlay-sub">Answer smoke detector Q&amp;A to push the smoke cloud to the detector. 30 seconds. 3s penalty per wrong answer.</div>
+      <button class="play-btn" id="start-btn">START GAME</button>
+    </div>
+  </div>
+
+  <div id="qa-panel">
+    <div id="question-text">Question will appear here.</div>
+    <div id="answers-wrap"></div>
+    <div id="feedback-msg"></div>
+  </div>
+</section>
+
+<footer>
+  Smoke Signal — Educational Science Game · Alpha particles, ion currents, and bad cooking since Am-241's discovery in 1944
+</footer>
+
+<script>
+// ─────────────────────────────────────────────
+//  QUESTION BANK
+// ─────────────────────────────────────────────
+const QUESTIONS = [
+  {
+    q: "What radioactive element is inside an ionization smoke detector?",
+    answers: ["Uranium-235","Plutonium-239","Americium-241","Radium-226"],
+    correct: 2,
+    explain: "Correct! Am-241 emits alpha particles that ionize the air inside the chamber."
+  },
+  {
+    q: "What type of radiation does Americium-241 emit?",
+    answers: ["Beta particles","Gamma rays","Alpha particles","Neutrons"],
+    correct: 2,
+    explain: "Yes! Alpha particles (helium-4 nuclei) ionize the air in the detector chamber."
+  },
+  {
+    q: "What does 'ionization' mean in the context of smoke detectors?",
+    answers: [
+      "Heating air to plasma",
+      "Knocking electrons off air molecules to create ions",
+      "Splitting nitrogen atoms",
+      "Charging the battery"
+    ],
+    correct: 1,
+    explain: "Exactly! Alpha particles collide with N₂ and O₂, releasing electrons and creating ion pairs."
+  },
+  {
+    q: "What normally flows between the detector's two plates to keep it quiet?",
+    answers: ["Electrons only","Smoke particles","A small ion current","Radioactive gas"],
+    correct: 2,
+    explain: "Right! Positive ions and electrons drift to opposite plates, creating a tiny steady current."
+  },
+  {
+    q: "What happens when smoke enters the ionization chamber?",
+    answers: [
+      "Smoke reflects alpha particles",
+      "Smoke particles attach to ions, neutralizing them",
+      "Smoke increases the current",
+      "Smoke emits its own radiation"
+    ],
+    correct: 1,
+    explain: "Correct! Smoke particles bond to ions, making them too heavy to migrate — current drops."
+  },
+  {
+    q: "Why does the alarm sound when smoke enters?",
+    answers: [
+      "Smoke blocks the battery",
+      "The current spike triggers a buzzer",
+      "Current drops below a threshold, triggering the circuit",
+      "Smoke melts a fuse"
+    ],
+    correct: 2,
+    explain: "Yes! A comparator detects the current drop and triggers the piezoelectric alarm."
+  },
+  {
+    q: "Why are alpha particles safe outside the detector?",
+    answers: [
+      "They are absorbed by the battery",
+      "They can't penetrate the sealed housing or skin",
+      "Am-241 is not truly radioactive",
+      "They decay instantly in air"
+    ],
+    correct: 1,
+    explain: "Correct! Alpha particles are massive and stopped by a sheet of paper or skin — safe in a sealed source."
+  },
+  {
+    q: "Approximately how long is Am-241's half-life?",
+    answers: ["8 days","432 years","24,000 years","1 second"],
+    correct: 1,
+    explain: "Right! ~432-year half-life means the detector stays active for its full working lifetime."
+  },
+  {
+    q: "What voltage source powers the ion current across the detector's plates?",
+    answers: ["Solar cell","9V battery","Wall outlet (120V)","Static electricity"],
+    correct: 1,
+    explain: "Correct! A standard 9V battery creates the electric field that separates and collects ions."
+  },
+  {
+    q: "What are smoke particles made of that let them bond to ions?",
+    answers: [
+      "Pure oxygen",
+      "Carbon soot and aerosols from combustion",
+      "Ionized helium",
+      "Water vapor only"
+    ],
+    correct: 1,
+    explain: "Yes! Combustion byproducts — carbon soot, aerosols, organics — are the large particles that intercept ions."
+  }
+];
+
+// ─────────────────────────────────────────────
+//  GAME STATE
+// ─────────────────────────────────────────────
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('game-overlay');
+const overlayTitle = document.getElementById('overlay-title');
+const overlaySub = document.getElementById('overlay-sub');
+const startBtn = document.getElementById('start-btn');
+const timerBar = document.getElementById('timer-bar');
+const timerLabel = document.getElementById('timer-label');
+const questionText = document.getElementById('question-text');
+const answersWrap = document.getElementById('answers-wrap');
+const feedbackMsg = document.getElementById('feedback-msg');
+
+const TOTAL_TIME = 30;
+let timeLeft = TOTAL_TIME;
+let gameRunning = false;
+let animId = null;
+let lastTs = null;
+
+// Smoke progress: 0 = over stove, 1 = at detector
+let smokeProgress = 0;
+let penaltyActive = false;
+let penaltyTimer = 0;
+
+let queuedQuestions = [];
+let currentQ = null;
+let answering = true;
+let phase = 'idle'; // idle | playing | won | lost
+
+// Particle system
+let particles = [];
+const PARTICLE_COUNT = 60;
+
+function initParticles() {
+  particles = [];
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particles.push(makeParticle(Math.random()));
+  }
+}
+
+function makeParticle(progress) {
+  return {
+    progress, // 0-1 along path
+    ox: (Math.random() - 0.5) * 60,
+    oy: (Math.random() - 0.5) * 30,
+    r: 4 + Math.random() * 8,
+    speed: 0.004 + Math.random() * 0.006,
+    alpha: 0.3 + Math.random() * 0.5,
+    wobble: Math.random() * Math.PI * 2,
+    wobbleSpeed: 0.02 + Math.random() * 0.03,
+  };
+}
+
+// ─────────────────────────────────────────────
+//  LAYOUT HELPERS
+// ─────────────────────────────────────────────
+function getLayout() {
+  const W = canvas.width, H = canvas.height;
+  return {
+    W, H,
+    stoveX: W * 0.12,
+    stoveY: H * 0.72,
+    detectorX: W * 0.85,
+    detectorY: H * 0.12,
+    pathMidX: W * 0.5,
+    pathMidY: H * 0.5,
+  };
+}
+
+function smokeXY(progress, L) {
+  // Cubic bezier-ish path from stove to detector
+  const t = progress;
+  const p0x = L.stoveX, p0y = L.stoveY - 40;
+  const p1x = L.stoveX + (L.detectorX - L.stoveX) * 0.3, p1y = L.H * 0.25;
+  const p2x = L.stoveX + (L.detectorX - L.stoveX) * 0.7, p2y = L.H * 0.18;
+  const p3x = L.detectorX, p3y = L.detectorY + 30;
+  // Cubic bezier
+  const x = Math.pow(1-t,3)*p0x + 3*Math.pow(1-t,2)*t*p1x + 3*(1-t)*t*t*p2x + t*t*t*p3x;
+  const y = Math.pow(1-t,3)*p0y + 3*Math.pow(1-t,2)*t*p1y + 3*(1-t)*t*t*p2y + t*t*t*p3y;
+  return { x, y };
+}
+
+// ─────────────────────────────────────────────
+//  DRAW
+// ─────────────────────────────────────────────
+function draw(ts) {
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  if (canvas.width !== W || canvas.height !== H) {
+    canvas.width = W; canvas.height = H;
+  }
+  const L = getLayout();
+  ctx.clearRect(0, 0, W, H);
+
+  drawRoom(L);
+  drawStove(L);
+  drawDetector(L);
+  drawSmokePath(L);
+  drawParticles(L);
+
+  if (phase === 'won') drawAlarmEffect(L);
+}
+
+function drawRoom(L) {
+  // Floor
+  ctx.fillStyle = '#1a1018';
+  ctx.fillRect(0, L.H * 0.8, L.W, L.H * 0.2);
+  // Wall
+  ctx.fillStyle = '#161420';
+  ctx.fillRect(0, 0, L.W, L.H * 0.8);
+  // Wall stripe
+  ctx.fillStyle = '#1c1a28';
+  ctx.fillRect(0, L.H * 0.05, L.W, 2);
+  // Counter
+  ctx.fillStyle = '#23202e';
+  ctx.fillRect(L.stoveX - 70, L.H * 0.68, 160, L.H * 0.2);
+  ctx.fillStyle = '#2a2740';
+  ctx.fillRect(L.stoveX - 70, L.H * 0.68, 160, 8);
+
+  // Fire flicker (if time < 10)
+  if (timeLeft < 10 && phase === 'playing') {
+    const intensity = (10 - timeLeft) / 10;
+    const grad = ctx.createRadialGradient(L.stoveX, L.H * 0.75, 0, L.stoveX, L.H * 0.75, 200 * intensity);
+    grad.addColorStop(0, `rgba(255,80,0,${0.18 * intensity})`);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, L.W, L.H);
+  }
+}
+
+function drawStove(L) {
+  const sx = L.stoveX, sy = L.stoveY;
+  // Body
+  roundRect(ctx, sx - 50, sy - 20, 100, 55, 6, '#2d2840');
+  roundRect(ctx, sx - 50, sy - 20, 100, 55, 6, null, '#3d3860');
+  // Burner
+  ctx.beginPath();
+  ctx.arc(sx, sy + 10, 22, 0, Math.PI*2);
+  ctx.fillStyle = '#1e1c2c'; ctx.fill();
+  ctx.strokeStyle = '#555'; ctx.lineWidth = 2; ctx.stroke();
+  // Flame
+  const flameH = 28 + Math.sin(Date.now()/120) * 6;
+  const flameG = ctx.createRadialGradient(sx, sy-10, 0, sx, sy-10, flameH);
+  flameG.addColorStop(0,'#fff8c0');
+  flameG.addColorStop(0.3,'#ffaa00');
+  flameG.addColorStop(0.7,'#ff4400');
+  flameG.addColorStop(1,'transparent');
+  ctx.fillStyle = flameG;
+  ctx.beginPath();
+  ctx.ellipse(sx, sy-8, 12, flameH/2, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Pan
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.ellipse(sx, sy+10, 26, 6, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#1e1e1e';
+  ctx.beginPath(); ctx.ellipse(sx, sy+8, 24, 5, 0, 0, Math.PI*2); ctx.fill();
+  // Burnt food
+  ctx.fillStyle = '#3a2000';
+  ctx.beginPath(); ctx.ellipse(sx, sy+8, 14, 3, 0, 0, Math.PI*2); ctx.fill();
+
+  // Label
+  ctx.fillStyle = '#ff6b35';
+  ctx.font = `bold ${Math.max(10, L.W*0.012)}px Syne`;
+  ctx.textAlign = 'center';
+  ctx.fillText('BURNT FOOD', sx, sy + 45);
+}
+
+function drawDetector(L) {
+  const dx = L.detectorX, dy = L.detectorY;
+  // Mount bracket
+  ctx.fillStyle = '#444';
+  ctx.fillRect(dx - 5, dy - 12, 10, 12);
+  // Body
+  roundRect(ctx, dx - 30, dy, 60, 20, 6, '#e0e0e0');
+  roundRect(ctx, dx - 30, dy, 60, 20, 6, null, '#aaa');
+  // Vents
+  for (let i = -2; i <= 2; i++) {
+    ctx.fillStyle = '#888';
+    ctx.fillRect(dx + i*9 - 2, dy + 5, 2, 10);
+  }
+  // LED
+  const ledColor = phase === 'won' ? '#ff3333' : (smokeProgress > 0.7 ? '#ffaa00' : '#39d98a');
+  ctx.fillStyle = ledColor;
+  ctx.beginPath(); ctx.arc(dx - 22, dy + 10, 3, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = '#4fc3f7';
+  ctx.font = `bold ${Math.max(9, L.W*0.011)}px Syne`;
+  ctx.textAlign = 'center';
+  ctx.fillText('DETECTOR', dx, dy + 30);
+}
+
+function drawSmokePath(L) {
+  // Draw faint path guide
+  ctx.save();
+  ctx.setLineDash([6, 10]);
+  ctx.strokeStyle = 'rgba(136,136,170,0.15)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const steps = 40;
+  for (let i = 0; i <= steps; i++) {
+    const { x, y } = smokeXY(i/steps, L);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawParticles(L) {
+  const clampedProgress = Math.min(1, smokeProgress + 0.12);
+  particles.forEach(p => {
+    if (p.progress > clampedProgress) return;
+    const { x, y } = smokeXY(p.progress, L);
+    const px = x + p.ox + Math.sin(p.wobble) * 10;
+    const py = y + p.oy + Math.cos(p.wobble) * 6;
+    // Near detector: show ion bonding visual
+    const nearDetector = p.progress > 0.85;
+    const grad = ctx.createRadialGradient(px, py, 0, px, py, p.r);
+    if (nearDetector && phase === 'won') {
+      grad.addColorStop(0, `rgba(255,220,68,${p.alpha})`);
+      grad.addColorStop(1, `rgba(255,100,0,0)`);
+    } else {
+      grad.addColorStop(0, `rgba(180,180,200,${p.alpha})`);
+      grad.addColorStop(1, `rgba(100,100,130,0)`);
+    }
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(px, py, p.r, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // Ion current visualization (normal state)
+  if (phase === 'playing' && smokeProgress < 0.95) {
+    drawIonCurrent(L);
+  }
+}
+
+function drawIonCurrent(L) {
+  const dx = L.detectorX, dy = L.detectorY + 10;
+  const now = Date.now();
+  // Tiny drifting dots representing ion current inside detector
+  for (let i = 0; i < 6; i++) {
+    const t = ((now * 0.0008 + i * 0.16) % 1);
+    const ix = dx - 22 + t * 44;
+    const iy = dy + 5 + Math.sin(t * Math.PI) * 4;
+    ctx.fillStyle = smokeProgress > 0.7 ? `rgba(255,200,50,${0.5*(1-smokeProgress*0.8)})` : 'rgba(255,220,68,0.6)';
+    ctx.beginPath(); ctx.arc(ix, iy, 2, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+let alarmPhase = 0;
+function drawAlarmEffect(L) {
+  alarmPhase += 0.12;
+  const r = Math.abs(Math.sin(alarmPhase));
+  const dx = L.detectorX, dy = L.detectorY + 10;
+  // Ripple
+  for (let i = 0; i < 3; i++) {
+    const rr = 30 + i * 20 + r * 15;
+    ctx.strokeStyle = `rgba(255,51,51,${(0.6 - i*0.2) * r})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(dx, dy, rr, 0, Math.PI*2); ctx.stroke();
+  }
+  // Alarm text
+  if (r > 0.5) {
+    ctx.fillStyle = `rgba(255,51,51,${r})`;
+    ctx.font = `bold ${Math.max(14,L.W*0.02)}px Syne`;
+    ctx.textAlign = 'center';
+    ctx.fillText('⚠ ALARM!', dx, dy - 45);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  UTILITY
+// ─────────────────────────────────────────────
+function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y); ctx.arcTo(x+w, y, x+w, y+r, r);
+  ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x+r, y+h); ctx.arcTo(x, y+h, x, y+h-r, r);
+  ctx.lineTo(x, y+r); ctx.arcTo(x, y, x+r, y, r);
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke(); }
+}
+
+// ─────────────────────────────────────────────
+//  QUESTION LOGIC
+// ─────────────────────────────────────────────
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function loadNextQuestion() {
+  if (queuedQuestions.length === 0) queuedQuestions = shuffleArray(QUESTIONS);
+  currentQ = queuedQuestions.pop();
+  answering = true;
+  feedbackMsg.textContent = '';
+  feedbackMsg.className = '';
+  questionText.textContent = currentQ.q;
+  answersWrap.innerHTML = '';
+  currentQ.answers.forEach((ans, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'ans-btn';
+    btn.textContent = ans;
+    btn.addEventListener('click', () => handleAnswer(i, btn));
+    answersWrap.appendChild(btn);
+  });
+}
+
+function handleAnswer(idx, btn) {
+  if (!answering || !gameRunning) return;
+  answering = false;
+  const btns = answersWrap.querySelectorAll('.ans-btn');
+  btns.forEach(b => b.disabled = true);
+  btns[currentQ.correct].classList.add('correct');
+
+  if (idx === currentQ.correct) {
+    btn.classList.add('correct');
+    feedbackMsg.textContent = '✓ ' + currentQ.explain;
+    feedbackMsg.className = 'fb-correct';
+    // Advance smoke
+    smokeProgress = Math.min(1, smokeProgress + 0.22);
+    updateParticleTarget();
+    setTimeout(loadNextQuestion, 1600);
+  } else {
+    btn.classList.add('wrong');
+    feedbackMsg.textContent = `✗ Wrong! +3s penalty. Correct: "${currentQ.answers[currentQ.correct]}"`;
+    feedbackMsg.className = 'fb-wrong';
+    // Penalty
+    penaltyActive = true;
+    penaltyTimer = 3;
+    showPenaltyFlash();
+    setTimeout(loadNextQuestion, 3200);
+  }
+}
+
+function showPenaltyFlash() {
+  const f = document.createElement('div');
+  f.className = 'penalty-flash';
+  document.getElementById('game-canvas-wrap').appendChild(f);
+  setTimeout(() => f.remove(), 800);
+}
+
+function updateParticleTarget() {
+  // spread particles up to new progress
+  particles.forEach(p => {
+    if (p.progress < smokeProgress - 0.05) {
+      p.progress = Math.min(smokeProgress, p.progress + Math.random() * 0.15);
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+//  GAME LOOP
+// ─────────────────────────────────────────────
+function gameLoop(ts) {
+  if (!gameRunning) return;
+  if (!lastTs) lastTs = ts;
+  const dt = (ts - lastTs) / 1000;
+  lastTs = ts;
+
+  // Update timer
+  if (penaltyActive) {
+    penaltyTimer -= dt;
+    if (penaltyTimer <= 0) { penaltyActive = false; penaltyTimer = 0; }
+    // deduct from real time too
+    timeLeft -= dt;
+  } else {
+    timeLeft -= dt;
+  }
+
+  // Particles wobble
+  particles.forEach(p => {
+    p.wobble += p.wobbleSpeed;
+    // Slowly drift toward progress front
+    if (p.progress < smokeProgress - 0.02) {
+      p.progress += p.speed;
+    }
+  });
+
+  // Timer UI
+  timeLeft = Math.max(0, timeLeft);
+  timerLabel.textContent = `${timeLeft.toFixed(1)}s remaining`;
+  const pct = timeLeft / TOTAL_TIME;
+  timerBar.style.width = (pct * 100) + '%';
+  timerBar.style.background = pct > 0.5 ? 'var(--green)' : pct > 0.2 ? 'var(--amber)' : 'var(--red)';
+
+  // Check win
+  if (smokeProgress >= 1) {
+    triggerWin();
+    return;
+  }
+  // Check lose
+  if (timeLeft <= 0) {
+    triggerLose();
+    return;
+  }
+
+  draw(ts);
+  animId = requestAnimationFrame(gameLoop);
+}
+
+function triggerWin() {
+  gameRunning = false;
+  phase = 'won';
+  draw(0);
+  // Flash alarm
+  const wrap = document.getElementById('game-canvas-wrap');
+  const af = document.createElement('div');
+  af.className = 'alarm-flash';
+  wrap.appendChild(af);
+  setTimeout(() => af.remove(), 2200);
+
+  setTimeout(() => {
+    overlayTitle.innerHTML = '🚨 ALARM TRIGGERED!<br><span style="color:var(--green);font-size:.7em">You saved the house!</span>';
+    overlaySub.innerHTML = 'Smoke particles bonded to ions → current dropped → alarm sounded.<br><br>The smoke detector worked!';
+    startBtn.textContent = 'PLAY AGAIN';
+    overlay.style.display = 'flex';
+    answersWrap.innerHTML = '';
+    questionText.textContent = 'Game complete!';
+    feedbackMsg.textContent = '';
+  }, 1800);
+}
+
+function triggerLose() {
+  gameRunning = false;
+  phase = 'lost';
+  draw(0);
+  setTimeout(() => {
+    overlayTitle.innerHTML = '🏠🔥 THE HOUSE BURNED DOWN!<br><span style="color:var(--red);font-size:.7em">Smoke never reached the detector.</span>';
+    overlaySub.innerHTML = 'Remember: ionization chambers need smoke to disrupt the ion current. Answer faster next time!';
+    startBtn.textContent = 'TRY AGAIN';
+    overlay.style.display = 'flex';
+    answersWrap.innerHTML = '';
+    questionText.textContent = 'Game over.';
+    feedbackMsg.textContent = '';
+  }, 600);
+}
+
+// ─────────────────────────────────────────────
+//  START / RESET
+// ─────────────────────────────────────────────
+function startGame() {
+  overlay.style.display = 'none';
+  phase = 'playing';
+  gameRunning = true;
+  timeLeft = TOTAL_TIME;
+  smokeProgress = 0;
+  penaltyActive = false;
+  penaltyTimer = 0;
+  lastTs = null;
+  queuedQuestions = shuffleArray(QUESTIONS);
+  initParticles();
+  loadNextQuestion();
+  animId = requestAnimationFrame(gameLoop);
+}
+
+startBtn.addEventListener('click', startGame);
+
+// Initial draw
+(function initDraw() {
+  const W = document.getElementById('game-canvas-wrap').offsetWidth;
+  const H = document.getElementById('game-canvas-wrap').offsetHeight;
+  canvas.width = W; canvas.height = H;
+  initParticles();
+  smokeProgress = 0;
+  draw(0);
+})();
+
+window.addEventListener('resize', () => {
+  if (!gameRunning) draw(0);
+});
+</script>
+</body>
+</html>
